@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.core.cache import cache
 
 from posts.models import Post
 
@@ -44,9 +43,9 @@ class StaticURLTests(TestCase):
         )
 
     def test_profile_page(self):
-        response = self.authorized_client.get('/%s/' % (self.user.username))
+        response = self.authorized_client.get(reverse('profile', args=(self.user.username,)))
         self.assertEqual(response.status_code, 200)
 
     def test_404(self):
-        response = self.unauthorized_client.get('/urls_that_does_not_exist/')
+        response = self.unauthorized_client.get('/url_that_does_not_exist/')
         self.assertEqual(response.status_code, 404)
