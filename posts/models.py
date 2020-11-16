@@ -29,15 +29,14 @@ class Post(models.Model):
     def __str__(self):
         return self.text
 
-
 class Comment(models.Model):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name='comments',
-        blank=True, null=True, verbose_name='Комментарий'
+        blank=True, null=True, verbose_name='Пост'
     )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='comments',
-        verbose_name='Комментарий'
+        verbose_name='Автор комментария'
     )
     text = models.TextField(verbose_name='Текст комментария')
     created = models.DateTimeField('date created', auto_now_add=True)
@@ -48,6 +47,9 @@ class Comment(models.Model):
     def __str__(self):
         return self.text
 
+    def post_id(self):
+        return self.post.id
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
@@ -56,3 +58,6 @@ class Follow(models.Model):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='following'
     )
+
+    class Meta:
+        unique_together = ['user', 'author']

@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from PIL import Image
+
 from posts.models import Post, Group
 
 
@@ -23,9 +25,14 @@ class ViewTests(TestCase):
             title='testgroup', slug='testgroup', description='sometext'
         )
         cls.text = 'some text for search'
+        img_bytes = (
+            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04"
+            b"\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
+            b"\x02\x4c\x01\x00\x3b"
+        )
         cls.image = SimpleUploadedFile(
             name='wtf.jpg',
-            content=open('D:\\Dev\\hw05_final\\media\\posts\\wtf.jpg', 'rb').read(),
+            content=img_bytes,
             content_type='image/jpeg'
         )
         cls.post = Post.objects.create(
@@ -96,14 +103,20 @@ class ViewTests(TestCase):
             )
 
     def test_wrong_img_format(self):
-        with open('D:\\Dev\\hw05_final\\media\\posts\\txt_file.txt') as not_img:
-            current_post_count = Post.objects.count()
-            self.authorized_client_author.post(
+        file = open('media\\posts\\temp_file.txt', 'wt')
+        file.write('some text')
+        file.close()
+        with open('media\\posts\\temp_file.txt') as not_img:
+            response = self.authorized_client_author.post(
                 reverse('new_post'),
                 {'text': 'svdvssx', 'image': not_img},
                 follow=True,
             )
-            self.assertNotEqual(Post.objects.count(), current_post_count + 1)
+            self.assertFormError(
+                response, 'form', 'image',
+                'Загрузите правильное изображение. Файл, который'
+                ' вы загрузили, поврежден или не является изображением.'
+            )
 
     def test_cache(self):
         text2 = 'any text'
@@ -122,7 +135,7 @@ class ViewTests(TestCase):
              msg_prefix='Пост не появляется на главной,'
                         'после очистки кеша')
 
-    def test_authorized_follow_unfollow(self):
+    def test_authorized_follow(self):
         self.authorized_client_follower.get(
             reverse('profile_follow', args=(self.user.username,))
         )
@@ -131,6 +144,11 @@ class ViewTests(TestCase):
             response, f'@{self.user.username}', status_code=200,
             msg_prefix='Посты не отображаются на странице'
                        ' follow_index после подписки'
+        )
+
+    def test_authorized_unfollow(self):
+        self.authorized_client_follower.get(
+            reverse('profile_follow', args=(self.user.username,))
         )
         self.authorized_client_follower.get(
             reverse('profile_unfollow', args=(self.user.username,))
@@ -161,16 +179,11 @@ class ViewTests(TestCase):
             msg_prefix='Новый пост отображается у не подписанного пользователся'
         )
 
-    def test_comments(self):
+    def test_authorized_comments(self):
         text = 'новый комментарий'
-        text2 = 'Новый комментарий 2'
         self.authorized_client_follower.post(
             reverse('add_comment', args=(self.user.username, self.post.id)),
             {'text': text}, follow=True,
-        )
-        self.unauthorized_client.post(
-            reverse('add_comment', args=(self.user.username, self.post.id)),
-            {'text': text2}, follow=True,
         )
         response = self.authorized_client_author.get(
             reverse('post', args=(self.user.username, self.post.id))
@@ -179,6 +192,16 @@ class ViewTests(TestCase):
             response, text, status_code=200,
             msg_prefix='Авторизованный пользователь'
                        ' не может оставить комментарий'
+        )
+
+    def test_unauthorized_comments(self):
+        text2 = 'Новый комментарий 2'
+        self.unauthorized_client.post(
+            reverse('add_comment', args=(self.user.username, self.post.id)),
+            {'text': text2}, follow=True,
+        )
+        response = self.authorized_client_author.get(
+            reverse('post', args=(self.user.username, self.post.id))
         )
         self.assertNotContains(
             response, text2, status_code=200,
