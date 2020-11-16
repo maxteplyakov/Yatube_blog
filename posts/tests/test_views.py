@@ -25,18 +25,8 @@ class ViewTests(TestCase):
             title='testgroup', slug='testgroup', description='sometext'
         )
         cls.text = 'some text for search'
-        img_bytes = (
-            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04"
-            b"\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
-            b"\x02\x4c\x01\x00\x3b"
-        )
-        cls.image = SimpleUploadedFile(
-            name='wtf.jpg',
-            content=img_bytes,
-            content_type='image/jpeg'
-        )
         cls.post = Post.objects.create(
-            text=cls.text, author=cls.user, group=cls.group, image=cls.image
+            text=cls.text, author=cls.user, group=cls.group,
         )
 
         cls.urls = {
@@ -69,7 +59,7 @@ class ViewTests(TestCase):
             self.assertContains(
                 response, self.text, status_code=200,
                 msg_prefix='Пост не появился на ' + self.urls[url] +
-                ' для авторизованного пользователя'
+                           ' для авторизованного пользователя'
             )
 
     def test_post_edit(self):
@@ -95,28 +85,51 @@ class ViewTests(TestCase):
             )
 
     def test_img_exists(self):
-        for url in self.urls.keys():
+        cache.clear()
+        img_bytes = (
+            b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04"
+            b"\x01\x0a\x00\x01\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02"
+            b"\x02\x4c\x01\x00\x3b"
+        )
+        image = SimpleUploadedFile(
+            name='wtf.jpg',
+            content=img_bytes,
+            content_type='image/jpeg'
+        )
+        self.authorized_client_author.post(
+            reverse('new_post'),
+            {'text': 'text', 'author': self.user, 'image': image},
+            follow=True,
+        )
+        post = Post.objects.get(text='text')
+        urls = {
+            reverse('index'): 'главной странице',
+            reverse('profile', args=(self.user.username,)): 'cтранице пользователя',
+            reverse('post', args=(post.author.username, post.id)): 'отдельной странице поста',
+        }
+        for url in urls.keys():
             response = self.unauthorized_client.get(url)
             self.assertContains(
                 response, '<img', status_code=200,
-                msg_prefix='HTML не содержит тег <img> на ' + self.urls[url]
+                msg_prefix='HTML не содержит тег <img> на ' + urls[url]
             )
 
     def test_wrong_img_format(self):
-        file = open('media\\posts\\temp_file.txt', 'wt')
-        file.write('some text')
-        file.close()
-        with open('media\\posts\\temp_file.txt') as not_img:
-            response = self.authorized_client_author.post(
-                reverse('new_post'),
-                {'text': 'svdvssx', 'image': not_img},
-                follow=True,
-            )
-            self.assertFormError(
-                response, 'form', 'image',
-                'Загрузите правильное изображение. Файл, который'
-                ' вы загрузили, поврежден или не является изображением.'
-            )
+        not_image = SimpleUploadedFile(
+            name='temp.txt',
+            content='some text'.encode('utf-8'),
+            content_type='text/utf8'
+        )
+        response = self.authorized_client_author.post(
+            reverse('new_post'),
+            {'text': 'svdvssx', 'image': not_image},
+            follow=True,
+        )
+        self.assertFormError(
+            response, 'form', 'image',
+            'Загрузите правильное изображение. Файл, который'
+            ' вы загрузили, поврежден или не является изображением.'
+        )
 
     def test_cache(self):
         text2 = 'any text'
@@ -160,7 +173,7 @@ class ViewTests(TestCase):
                        ' follow_index после отписки'
         )
 
-    def test_newpost_follow(self):
+    def test_newpost_follow(self): #здесь нет проверки для неавторизованного пользователя, он же вообще не видит страницу follow_index. Соответственно и разделять нечего
         self.authorized_client_follower.get(
             reverse('profile_follow', args=(self.user.username,))
         )
