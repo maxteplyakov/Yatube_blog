@@ -18,6 +18,8 @@ from django.contrib.flatpages import views
 from django.conf.urls import handler404, handler500
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf.urls import url
+from django.views.static import serve
 
 import django.urls
 
@@ -26,20 +28,51 @@ handler500 = "posts.views.server_error" # noqa
 
 urlpatterns = [
     django.urls.path('auth/', django.urls.include('users.urls')),
-    django.urls.path('auth/', django.urls.include('django.contrib.auth.urls')),
+    django.urls.path('auth/',
+                     django.urls.include('django.contrib.auth.urls')
+                     ),
     django.urls.path('admin/', admin.site.urls),
-    django.urls.path('about/', django.urls.include('django.contrib.flatpages.urls')),
+    django.urls.path('about/',
+                     django.urls.include('django.contrib.flatpages.urls')
+                     ),
     django.urls.path('', django.urls.include('posts.urls')),
     ]
 
 urlpatterns += [
-        django.urls.path('about-us/', views.flatpage, {'url': '/about-us/'}, name='about'),
-        django.urls.path('terms/', views.flatpage, {'url': '/terms/'}, name='terms'),
-        django.urls.path('about-author/', views.flatpage, {'url': '/about-author/'}, name='developer'),
-        django.urls.path('about-spec/', views.flatpage, {'url': '/about-spec/'}, name='spec'),
+        django.urls.path('about-us/', views.flatpage,
+                         {'url': '/about-us/'}, name='about'
+                         ),
+        django.urls.path('terms/', views.flatpage,
+                         {'url': '/terms/'}, name='terms'
+                         ),
+        django.urls.path('about-author/', views.flatpage,
+                         {'url': '/about-author/'}, name='developer'
+                         ),
+        django.urls.path('about-spec/', views.flatpage,
+                         {'url': '/about-spec/'}, name='spec'
+                         ),
 
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    import debug_toolbar
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )
+    urlpatterns += static(
+        settings.STATIC_URL,
+        document_root=settings.STATIC_ROOT
+    )
+    urlpatterns += (
+        django.urls.path("__debug__/",
+        django.urls.include(debug_toolbar.urls)),
+    )
+
+if not settings.DEBUG:
+    urlpatterns += [
+        url(r'^media/(?P<path>.*)$', serve,
+            {'document_root': settings.MEDIA_ROOT}),
+        url(r'^static/(?P<path>.*)$', serve,
+            {'document_root': settings.STATIC_ROOT}),
+    ]
