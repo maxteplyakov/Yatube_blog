@@ -25,6 +25,8 @@ SECRET_KEY = 'y&9153qdd4tc^#-@!d@-ugqla)+4!0)lmp=e6-(qx1e59uvci_'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+CAPTCHA_TEST_MODE = True
+
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
@@ -48,7 +50,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sorl.thumbnail',
-    'debug_toolbar'
+    'debug_toolbar',
+    'captcha',
 ]
 
 MIDDLEWARE = [

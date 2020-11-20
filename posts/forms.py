@@ -1,8 +1,12 @@
 from django import forms
+
+from captcha.fields import CaptchaField
+
 from .models import Post, Comment
 
 
 class PostForm(forms.ModelForm):
+    captcha = CaptchaField()
     class Meta:
         model = Post
         fields = ('text', 'group', 'image')

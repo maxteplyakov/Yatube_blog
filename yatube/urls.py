@@ -54,6 +54,10 @@ urlpatterns += [
 
 ]
 
+urlpatterns += [
+    django.urls.path('captcha/', django.urls.include('captcha.urls')),
+]
+
 if settings.DEBUG:
     import debug_toolbar
     urlpatterns += static(

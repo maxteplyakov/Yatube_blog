@@ -29,7 +29,13 @@ class StaticURLTests(TestCase):
     def test_new_post(self):
         current_post_count = Post.objects.count()
         response = self.authorized_client.post(
-            reverse('new_post'), {'text': 'Это текст публикации'}, follow=True,
+            reverse('new_post'),
+            {
+                'text': 'Это текст публикации',
+                'captcha_0': 'PASSED',
+                'captcha_1': 'PASSED',
+            },
+            follow=True,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Post.objects.count(), current_post_count + 1)

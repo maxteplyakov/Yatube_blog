@@ -69,7 +69,12 @@ class ViewTests(TestCase):
             reverse(
                 'post_edit', args=(self.post.author.username, self.post.id)
             ),
-            data={'text': text2}, follow=True,
+            data={
+                'text': text2,
+                'captcha_0': 'PASSED',
+                'captcha_1': 'PASSED',
+            },
+            follow=True,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
@@ -98,7 +103,13 @@ class ViewTests(TestCase):
         )
         self.authorized_client_author.post(
             reverse('new_post'),
-            {'text': 'text', 'author': self.user, 'image': image},
+            {
+                'text': 'text',
+                'author': self.user,
+                'image': image,
+                'captcha_0': 'PASSED',
+                'captcha_1': 'PASSED',
+            },
             follow=True,
         )
         post = Post.objects.get(text='text')
@@ -134,7 +145,13 @@ class ViewTests(TestCase):
     def test_cache(self):
         text2 = 'any text'
         response = self.authorized_client_author.post(
-            reverse('new_post'), {'text': text2}, follow=True,
+            reverse('new_post'),
+            {
+                'text': text2,
+                'captcha_0': 'PASSED',
+                'captcha_1': 'PASSED',
+            },
+            follow=True,
         )
         self.assertEqual(response.status_code, 200)
         response = self.unauthorized_client.get(reverse('index'))
@@ -173,13 +190,19 @@ class ViewTests(TestCase):
                        ' follow_index после отписки'
         )
 
-    def test_newpost_follow(self): #здесь нет проверки для неавторизованного пользователя, он же вообще не видит страницу follow_index. Соответственно и разделять нечего
+    def test_newpost_follow(self):
         self.authorized_client_follower.get(
             reverse('profile_follow', args=(self.user.username,))
         )
         text = 'Текст нового поста'
         self.authorized_client_author.post(
-            reverse('new_post'), {'text': text}, follow=True,
+            reverse('new_post'),
+            {
+                'text': text,
+                'captcha_0': 'PASSED',
+                'captcha_1': 'PASSED',
+            },
+            follow=True,
         )
         response = self.authorized_client_follower.get(reverse('follow_index'))
         self.assertContains(
